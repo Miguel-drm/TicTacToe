@@ -89,7 +89,32 @@ function findMatch() {
         if (waitingPlayers.length > 0) {
             // Join existing game
             const [waitingPlayerId, waitingPlayerData] = waitingPlayers[0];
-            joinMatchmakingGame(waitingPlayerId, waitingPlayerData);
+            const newGameId = generateGameId();
+            
+            // Create new game
+            const gameData = {
+                players: {
+                    X: waitingPlayerData.playerName,
+                    O: playerName
+                },
+                currentTurn: 'X',
+                board: Array(9).fill(''),
+                gameOver: false,
+                winner: null,
+                winningLine: null
+            };
+
+            // Update matchmaking status for both players
+            matchmakingRef.child(waitingPlayerId).update({
+                status: 'matched',
+                gameId: newGameId
+            });
+
+            // Create the game
+            database.ref(`games/${newGameId}`).set(gameData);
+            
+            // Join the game
+            joinMatchmakingGame(newGameId, 'O');
         } else {
             // Create new matchmaking entry
             const playerId = generateUserId();
@@ -103,14 +128,14 @@ function findMatch() {
             matchmakingRef.child(playerId).on('value', (snap) => {
                 const data = snap.val();
                 if (data && data.status === 'matched') {
-                    joinMatchmakingGame(data.gameId);
+                    joinMatchmakingGame(data.gameId, 'X');
                 }
             });
         }
     });
 }
 
-function joinMatchmakingGame(gameId) {
+function joinMatchmakingGame(gameId, symbol) {
     isInMatchmaking = false;
     matchmakingStatus.textContent = 'Game found!';
     findMatchBtn.disabled = false;
@@ -121,12 +146,8 @@ function joinMatchmakingGame(gameId) {
         const gameData = snapshot.val();
         if (!gameData) return;
 
-        playerSymbol = 'O';
-        isMyTurn = false;
-
-        gameRef.update({
-            'players/O': playerName
-        });
+        playerSymbol = symbol;
+        isMyTurn = symbol === 'X';
 
         setupGame();
     });
@@ -205,6 +226,9 @@ function setupGame() {
     if (!gameRef) {
         gameRef = database.ref(`games/${gameId}`);
     }
+
+    // Remove any existing listeners
+    gameRef.off();
 
     gameRef.on('value', (snapshot) => {
         const gameData = snapshot.val();
@@ -344,40 +368,65 @@ function drawWinningLine(winningLine) {
 
     // Calculate line position and dimensions
     const firstCell = cells[first].getBoundingClientRect();
-    const lastCell = cells[third].getBoundingClientRect();
+    const secondCell = cells[second].getBoundingClientRect();
+    const thirdCell = cells[third].getBoundingClientRect();
     const boardRect = board.getBoundingClientRect();
 
     const line = document.createElement('div');
     line.className = 'winning-line';
 
+    // Calculate center points of each cell
+    const firstCenterX = firstCell.left + firstCell.width / 2;
+    const firstCenterY = firstCell.top + firstCell.height / 2;
+    const secondCenterX = secondCell.left + secondCell.width / 2;
+    const secondCenterY = secondCell.top + secondCell.height / 2;
+    const thirdCenterX = thirdCell.left + thirdCell.width / 2;
+    const thirdCenterY = thirdCell.top + thirdCell.height / 2;
+
     // Determine if the line is horizontal, vertical, or diagonal
-    if (firstCell.top === lastCell.top) {
+    if (Math.abs(firstCenterY - secondCenterY) < 5 && Math.abs(secondCenterY - thirdCenterY) < 5) {
         // Horizontal line
-        line.style.width = `${lastCell.right - firstCell.left}px`;
-        line.style.height = '4px';
-        line.style.top = `${firstCell.top + firstCell.height/2 - boardRect.top}px`;
-        line.style.left = `${firstCell.left - boardRect.left}px`;
-    } else if (firstCell.left === lastCell.left) {
+        const startX = Math.min(firstCenterX, secondCenterX, thirdCenterX);
+        const endX = Math.max(firstCenterX, secondCenterX, thirdCenterX);
+        line.style.width = `${endX - startX}px`;
+        line.style.height = '6px';
+        line.style.top = `${firstCenterY - boardRect.top - 3}px`;
+        line.style.left = `${startX - boardRect.left}px`;
+    } else if (Math.abs(firstCenterX - secondCenterX) < 5 && Math.abs(secondCenterX - thirdCenterX) < 5) {
         // Vertical line
-        line.style.width = '4px';
-        line.style.height = `${lastCell.bottom - firstCell.top}px`;
-        line.style.left = `${firstCell.left + firstCell.width/2 - boardRect.left}px`;
-        line.style.top = `${firstCell.top - boardRect.top}px`;
+        const startY = Math.min(firstCenterY, secondCenterY, thirdCenterY);
+        const endY = Math.max(firstCenterY, secondCenterY, thirdCenterY);
+        line.style.width = '6px';
+        line.style.height = `${endY - startY}px`;
+        line.style.left = `${firstCenterX - boardRect.left - 3}px`;
+        line.style.top = `${startY - boardRect.top}px`;
     } else {
         // Diagonal line
+        // Use the first and third cells of the winning line to determine start and end points
+        const startCell = cells[first];
+        const endCell = cells[third];
+
+        const startCellRect = startCell.getBoundingClientRect();
+        const endCellRect = endCell.getBoundingClientRect();
+        const boardRect = board.getBoundingClientRect();
+
+        // Calculate center points relative to the board
+        const startX = (startCellRect.left + startCellRect.width / 2) - boardRect.left;
+        const startY = (startCellRect.top + startCellRect.height / 2) - boardRect.top;
+        const endX = (endCellRect.left + endCellRect.width / 2) - boardRect.left;
+        const endY = (endCellRect.top + endCellRect.height / 2) - boardRect.top;
+
         const length = Math.sqrt(
-            Math.pow(lastCell.left - firstCell.left, 2) +
-            Math.pow(lastCell.bottom - firstCell.top, 2)
+            Math.pow(endX - startX, 2) +
+            Math.pow(endY - startY, 2)
         );
-        const angle = Math.atan2(
-            lastCell.bottom - firstCell.top,
-            lastCell.left - firstCell.left
-        ) * 180 / Math.PI;
+
+        const angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
 
         line.style.width = `${length}px`;
-        line.style.height = '4px';
-        line.style.left = `${firstCell.left + firstCell.width/2 - boardRect.left}px`;
-        line.style.top = `${firstCell.top + firstCell.height/2 - boardRect.top}px`;
+        line.style.height = '6px'; // Keep consistent thickness
+        line.style.left = `${startX - 3}px`; // Position line based on start cell center, adjust by half thickness
+        line.style.top = `${startY - 3}px`; // Position line based on start cell center, adjust by half thickness
         line.style.transform = `rotate(${angle}deg)`;
         line.style.transformOrigin = '0 0';
     }
