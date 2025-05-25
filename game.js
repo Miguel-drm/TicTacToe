@@ -32,8 +32,6 @@ const gameInfo = document.getElementById('game-info');
 const gameBoard = document.getElementById('game-board');
 const playerNameInput = document.getElementById('player-name');
 const gameIdInput = document.getElementById('game-id');
-const createGameBtn = document.getElementById('create-game');
-const joinGameBtn = document.getElementById('join-game');
 const findMatchBtn = document.getElementById('find-match');
 const matchmakingStatus = document.getElementById('matchmaking-status');
 const currentGameIdSpan = document.getElementById('current-game-id');
@@ -47,15 +45,11 @@ const restartVoteStatus = document.getElementById('restart-vote-status');
 const acceptRestartBtn = document.getElementById('accept-restart');
 const rejectRestartBtn = document.getElementById('reject-restart');
 const leaveGameBtn = document.getElementById('leave-game');
-
-// New DOM Element for opponent name display
 const opponentNameDisplaySpan = document.getElementById('opponent-name-display');
 
 // Event Listeners
-createGameBtn.addEventListener('click', createGame);
-joinGameBtn.addEventListener('click', joinGame);
-restartGameBtn.addEventListener('click', requestRestart);
 findMatchBtn.addEventListener('click', findMatch);
+restartGameBtn.addEventListener('click', requestRestart);
 cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 acceptRestartBtn.addEventListener('click', acceptRestart);
 rejectRestartBtn.addEventListener('click', rejectRestart);
@@ -286,114 +280,6 @@ function joinMatchmakingGame(gameId, symbol) {
     });
 }
 
-function createGame() {
-    playerName = playerNameInput.value.trim();
-    if (!playerName) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Name Required',
-            text: 'Please enter your name before creating a game.',
-            customClass: {
-                popup: 'swal2-dark',
-                title: 'swal2-title-dark',
-                content: 'swal2-content-dark',
-                confirmButton: 'swal2-confirm-dark'
-            },
-            background: '#1a1a1a',
-            color: '#ffffff'
-        });
-        return;
-    }
-
-    gameId = generateGameId();
-    playerSymbol = 'X';
-    isMyTurn = true;
-
-    const gameData = {
-        players: {
-            X: playerName,
-            O: null
-        },
-        currentTurn: 'X',
-        board: Array(9).fill(''),
-        gameOver: false,
-        winner: null,
-        winningLine: null
-    };
-
-    database.ref(`games/${gameId}`).set(gameData);
-    setupGame();
-}
-
-function joinGame() {
-    playerName = playerNameInput.value.trim();
-    gameId = gameIdInput.value.trim();
-
-    if (!playerName || !gameId) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Information Required',
-            text: 'Please enter your name and game ID to join.',
-            customClass: {
-                popup: 'swal2-dark',
-                title: 'swal2-title-dark',
-                content: 'swal2-content-dark',
-                confirmButton: 'swal2-confirm-dark'
-            },
-            background: '#1a1a1a',
-            color: '#ffffff'
-        });
-        return;
-    }
-
-    gameRef = database.ref(`games/${gameId}`);
-    gameRef.once('value', (snapshot) => {
-        const gameData = snapshot.val();
-        if (!gameData) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Game Not Found',
-                text: `No game found with ID: ${gameId}`,
-                customClass: {
-                    popup: 'swal2-dark',
-                    title: 'swal2-title-dark',
-                    content: 'swal2-content-dark',
-                    confirmButton: 'swal2-confirm-dark'
-                },
-                background: '#1a1a1a',
-                color: '#ffffff'
-            });
-            return;
-        }
-
-        if (gameData.players.O) {
-            Swal.fire({
-                icon: 'info',
-                title: 'Game Full',
-                text: 'This game is already full.',
-                customClass: {
-                    popup: 'swal2-dark',
-                    title: 'swal2-title-dark',
-                    content: 'swal2-content-dark',
-                    confirmButton: 'swal2-confirm-dark'
-                },
-                background: '#1a1a1a',
-                color: '#ffffff'
-            });
-            return;
-        }
-
-        playerSymbol = 'O';
-        isMyTurn = false;
-
-        gameRef.update({
-            'players/O': playerName
-        });
-
-        setupGame();
-    });
-}
-
 function setupGame() {
     gameSetup.classList.add('hidden');
     gameInfo.classList.remove('hidden');
@@ -409,14 +295,19 @@ function setupGame() {
         gameRef = database.ref(`games/${gameId}`);
     }
 
+    // Only show initial countdown when joining via game code (not matchmaking)
+    if (!isInMatchmaking) {
+        showInitialCountdown();
+    }
+
     // Remove any existing listeners
     gameRef.off();
 
     gameRef.on('value', (snapshot) => {
         const gameData = snapshot.val();
         if (!gameData) {
-             // Game was likely deleted (player left)
-             Swal.fire({
+            // Game was likely deleted (player left)
+            Swal.fire({
                 icon: 'info',
                 title: 'Opponent Left',
                 text: 'Your opponent has left the game.',
@@ -442,7 +333,7 @@ function setupGame() {
         // Update opponent name display
         const opponentSymbol = playerSymbol === 'X' ? 'O' : 'X';
         const opponentName = gameData.players[opponentSymbol];
-        opponentNameDisplaySpan.textContent = opponentName || 'Waiting...'; // Display waiting if opponent not joined yet
+        opponentNameDisplaySpan.textContent = opponentName || 'Waiting...';
 
         if (gameData.winningLine) {
             // drawWinningLine(gameData.winningLine); // Removed call to drawWinningLine
@@ -460,12 +351,12 @@ function setupGame() {
         const removedPlayerName = snapshot.val(); // Get the name of the player who left
 
         if (removedPlayerSymbol === 'X' || removedPlayerSymbol === 'O') {
-             Swal.fire({
+            Swal.fire({
                 icon: 'info',
                 title: 'Opponent Left',
                 text: `${removedPlayerName || 'Your opponent'} has left the game.`, // Use name if available
                 allowOutsideClick: false,
-                 customClass: {
+                customClass: {
                     popup: 'swal2-dark',
                     title: 'swal2-title-dark',
                     content: 'swal2-content-dark',
@@ -756,6 +647,9 @@ function handleRestartVote(restartVote) {
                 },
                 background: '#1a1a1a',
                 color: '#ffffff'
+            }).then(() => {
+                // Start countdown after modal closes
+                startRestartCountdown();
             });
         } else if (playerVotes.includes(playerName)) {
              // This player is the approver, show success modal
@@ -774,43 +668,11 @@ function handleRestartVote(restartVote) {
                  },
                  background: '#1a1a1a',
                  color: '#ffffff'
+             }).then(() => {
+                // Start countdown after modal closes
+                startRestartCountdown();
              });
         }
-
-        // Get the current game state to determine the next turn
-        gameRef.once('value', (snapshot) => {
-            const gameData = snapshot.val();
-            let nextTurn;
-
-            if (gameData.winner && gameData.winner !== 'draw') {
-                // If there was a winner, the loser starts the next round
-                nextTurn = gameData.winner === 'X' ? 'O' : 'X';
-            } else {
-                // If it was a draw, alternate from the last turn
-                nextTurn = gameData.currentTurn === 'X' ? 'O' : 'X';
-            }
-
-            // Reset the game state in Firebase with the new turn
-            gameRef.update({
-                board: Array(9).fill(''),
-                currentTurn: nextTurn,
-                gameOver: false,
-                winner: null,
-                winningLine: null,
-                restartVote: null
-            });
-
-            // Reset the cells visually
-            cells.forEach(cell => {
-                cell.textContent = '';
-                cell.className = 'cell no-select';
-                cell.classList.remove('winning');
-            });
-
-            // Hide vote section and show restart button again
-            restartVoteSection.classList.add('hidden');
-            restartGameBtn.classList.remove('hidden');
-        });
     } else if (playerVotes.length === 1 && playerVotes[0] === playerName) {
          // This player initiated the vote, SweetAlert loading modal is shown in requestRestart
         restartGameBtn.classList.add('hidden');
@@ -818,6 +680,12 @@ function handleRestartVote(restartVote) {
          acceptRestartBtn.classList.add('hidden');
          rejectRestartBtn.classList.add('hidden');
     }
+
+    // Clear timer during restart
+    if (moveTimer) {
+        clearInterval(moveTimer);
+    }
+    timerDisplay.style.display = 'none';
 }
 
 function acceptRestart() {
@@ -923,12 +791,90 @@ function resetGameState() {
     cells.forEach(cell => {
         cell.textContent = '';
         cell.className = 'cell no-select';
-        cell.classList.remove('winning'); // Ensure winning class is removed
+        cell.classList.remove('winning');
     });
 
-    // Remove winning line element if it exists (shouldn't be needed with new logic, but as a safeguard)
+    // Remove winning line element if it exists
     const winningLineElement = document.querySelector('.winning-line');
     if (winningLineElement) {
         winningLineElement.remove();
     }
+}
+
+function showInitialCountdown() {
+    let count = 3;
+    
+    // Disable the game board during countdown
+    cells.forEach(cell => {
+        cell.style.pointerEvents = 'none';
+    });
+    
+    Swal.fire({
+        title: 'Game Starting!',
+        html: `<div style="font-size: 48px; font-weight: bold;">${count}</div>`,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        customClass: {
+            popup: 'swal2-dark',
+            title: 'swal2-title-dark',
+            content: 'swal2-content-dark'
+        },
+        background: '#1a1a1a',
+        color: '#ffffff',
+        didOpen: () => {
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    Swal.getHtmlContainer().innerHTML = `<div style="font-size: 48px; font-weight: bold;">${count}</div>`;
+                } else {
+                    clearInterval(timer);
+                    Swal.close();
+                    // Enable the game board after countdown
+                    cells.forEach(cell => {
+                        cell.style.pointerEvents = 'auto';
+                    });
+                }
+            }, 1000);
+        }
+    });
+}
+
+function startRestartCountdown() {
+    // Get the current game state to determine the next turn
+    gameRef.once('value', (snapshot) => {
+        const gameData = snapshot.val();
+        let nextTurn;
+
+        if (gameData.winner && gameData.winner !== 'draw') {
+            // If there was a winner, the loser starts the next round
+            nextTurn = gameData.winner === 'X' ? 'O' : 'X';
+        } else {
+            // If it was a draw, alternate from the last turn
+            nextTurn = gameData.currentTurn === 'X' ? 'O' : 'X';
+        }
+
+        // Reset the game state in Firebase with the new turn
+        gameRef.update({
+            board: Array(9).fill(''),
+            currentTurn: nextTurn,
+            gameOver: false,
+            winner: null,
+            winningLine: null,
+            restartVote: null
+        });
+
+        // Reset the cells visually
+        cells.forEach(cell => {
+            cell.textContent = '';
+            cell.className = 'cell no-select';
+            cell.classList.remove('winning');
+        });
+
+        // Hide vote section and show restart button again
+        restartVoteSection.classList.add('hidden');
+        restartGameBtn.classList.remove('hidden');
+
+        // Show countdown after game is reset
+        showInitialCountdown();
+    });
 } 

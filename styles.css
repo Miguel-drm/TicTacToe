@@ -389,7 +389,6 @@ button:active {
 
 /* Matchmaking section */
 .matchmaking-section {
-    margin-top: 1.5rem;
     padding: 1.5rem;
     background: var(--matchmaking-bg);
     border-radius: 12px;
@@ -677,12 +676,17 @@ button:active {
     background: var(--accent-primary) !important;
 }
 
-/* Matchmaking Loading Animation (from previous steps, might be needed for SweetAlert2 default structure) */
-/* Keeping these just in case SweetAlert2 uses these class names internally */
-.swal2-container .swal2-spinner {
-    /* You might need custom styles here if default spinner isn't visible or styled correctly */
+/* Author Credit */
+.author-credit {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-style: italic;
 }
 
-.swal2-container .swal2-html-container p {
-    /* Styles for the text inside the modal if needed */
+.author-credit p {
+    margin: 0;
+    padding: 0;
 } 
