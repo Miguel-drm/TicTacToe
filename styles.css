@@ -651,29 +651,66 @@ button:active {
 .swal2-popup.swal2-dark {
     background: #1a1a1a !important;
     color: #ffffff !important;
+    width: 90% !important;
+    max-width: 400px !important;
+    padding: 1.5rem !important;
 }
 
 .swal2-title.swal2-title-dark {
     color: #ffffff !important;
+    font-size: 1.5rem !important;
 }
 
 .swal2-content.swal2-content-dark {
     color: #b3b3b3 !important;
+    font-size: 1rem !important;
 }
 
 .swal2-actions .swal2-confirm.swal2-confirm-dark {
     background: var(--accent-primary) !important;
     color: #ffffff !important;
+    font-size: 1rem !important;
+    padding: 0.8rem 1.5rem !important;
 }
 
 .swal2-actions .swal2-cancel.swal2-cancel-dark {
     background: var(--error) !important;
     color: #ffffff !important;
     margin-top: 15px;
+    font-size: 1rem !important;
+    padding: 0.8rem 1.5rem !important;
 }
 
 .swal2-timer-progress-bar {
     background: var(--accent-primary) !important;
+}
+
+/* Responsive SweetAlert2 styles */
+@media (max-width: 480px) {
+    .swal2-popup.swal2-dark {
+        width: 95% !important;
+        max-width: 320px !important;
+        padding: 1rem !important;
+    }
+
+    .swal2-title.swal2-title-dark {
+        font-size: 1.2rem !important;
+    }
+
+    .swal2-content.swal2-content-dark {
+        font-size: 0.9rem !important;
+    }
+
+    .swal2-actions .swal2-confirm.swal2-confirm-dark,
+    .swal2-actions .swal2-cancel.swal2-cancel-dark {
+        font-size: 0.9rem !important;
+        padding: 0.6rem 1.2rem !important;
+    }
+
+    /* Adjust countdown number size */
+    .swal2-html-container div {
+        font-size: 36px !important;
+    }
 }
 
 /* Author Credit */
