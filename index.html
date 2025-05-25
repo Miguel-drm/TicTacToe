@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multiplayer Tic Tac Toe</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 </head>
 <body>
     <div class="online-players">
@@ -30,6 +32,7 @@
         <div id="game-info" class="hidden">
             <p class="no-select">Game ID: <span id="current-game-id"></span></p>
             <p class="no-select">Your Symbol: <span id="player-symbol"></span></p>
+            <p class="no-select">Opponent: <span id="opponent-name-display"></span></p>
             <p class="no-select">Status: <span id="game-status">Waiting for opponent...</span></p>
         </div>
 
@@ -48,6 +51,16 @@
         </div>
 
         <button id="restart-game" class="hidden no-select">Restart Game</button>
+
+        <!-- Restart Vote Section -->
+        <div id="restart-vote-section" class="hidden">
+            <p id="restart-vote-status"></p>
+            <button id="accept-restart" class="no-select">Accept Restart</button>
+            <button id="reject-restart" class="no-select">Reject Restart</button>
+        </div>
+
+        <!-- Leave Game Button -->
+        <button id="leave-game" class="hidden no-select">Leave Game</button>
     </div>
 
     <!-- Firebase SDK -->
@@ -56,5 +69,7 @@
     
     <!-- Game Script -->
     <script src="game.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 </body>
 </html> 
