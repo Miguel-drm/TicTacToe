@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="online-players">
+        <div class="online-indicator"></div>
+        <span id="online-count">0</span> players online
+    </div>
+
     <div class="container">
         <h1 class="no-select">Multiplayer Tic Tac Toe</h1>
         
@@ -15,6 +20,11 @@
             <button id="create-game" class="no-select">Create New Game</button>
             <input type="text" id="game-id" placeholder="Enter Game ID">
             <button id="join-game" class="no-select">Join Game</button>
+            
+            <div class="matchmaking-section">
+                <button id="find-match" class="matchmaking-button no-select">Find Random Match</button>
+                <p class="matchmaking-status" id="matchmaking-status"></p>
+            </div>
         </div>
 
         <div id="game-info" class="hidden">

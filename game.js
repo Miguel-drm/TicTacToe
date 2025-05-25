@@ -24,6 +24,7 @@ let playerName = '';
 let playerSymbol = '';
 let isMyTurn = false;
 let gameRef = null;
+let isInMatchmaking = false;
 
 // DOM Elements
 const gameSetup = document.getElementById('game-setup');
@@ -33,19 +34,104 @@ const playerNameInput = document.getElementById('player-name');
 const gameIdInput = document.getElementById('game-id');
 const createGameBtn = document.getElementById('create-game');
 const joinGameBtn = document.getElementById('join-game');
+const findMatchBtn = document.getElementById('find-match');
+const matchmakingStatus = document.getElementById('matchmaking-status');
 const currentGameIdSpan = document.getElementById('current-game-id');
 const playerSymbolSpan = document.getElementById('player-symbol');
 const gameStatusSpan = document.getElementById('game-status');
 const restartGameBtn = document.getElementById('restart-game');
 const cells = document.querySelectorAll('.cell');
+const onlineCountSpan = document.getElementById('online-count');
 
 // Event Listeners
 createGameBtn.addEventListener('click', createGame);
 joinGameBtn.addEventListener('click', joinGame);
 restartGameBtn.addEventListener('click', restartGame);
+findMatchBtn.addEventListener('click', findMatch);
 cells.forEach(cell => cell.addEventListener('click', handleCellClick));
 
+// Track online players
+database.ref('.info/connected').on('value', (snap) => {
+    if (snap.val() === true) {
+        const userStatusRef = database.ref(`/status/${generateUserId()}`);
+        userStatusRef.set(true);
+        userStatusRef.onDisconnect().remove();
+    }
+});
+
+database.ref('/status').on('value', (snapshot) => {
+    const count = Object.keys(snapshot.val() || {}).length;
+    onlineCountSpan.textContent = count;
+});
+
 // Functions
+function generateUserId() {
+    return 'user_' + Math.random().toString(36).substr(2, 9);
+}
+
+function findMatch() {
+    playerName = playerNameInput.value.trim();
+    if (!playerName) {
+        alert('Please enter your name');
+        return;
+    }
+
+    isInMatchmaking = true;
+    matchmakingStatus.textContent = 'Finding opponent...';
+    findMatchBtn.disabled = true;
+
+    const matchmakingRef = database.ref('matchmaking');
+    matchmakingRef.once('value', (snapshot) => {
+        const matchmakingData = snapshot.val() || {};
+        const waitingPlayers = Object.entries(matchmakingData)
+            .filter(([_, data]) => data.status === 'waiting' && data.playerName !== playerName);
+
+        if (waitingPlayers.length > 0) {
+            // Join existing game
+            const [waitingPlayerId, waitingPlayerData] = waitingPlayers[0];
+            joinMatchmakingGame(waitingPlayerId, waitingPlayerData);
+        } else {
+            // Create new matchmaking entry
+            const playerId = generateUserId();
+            matchmakingRef.child(playerId).set({
+                playerName,
+                status: 'waiting',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Listen for opponent
+            matchmakingRef.child(playerId).on('value', (snap) => {
+                const data = snap.val();
+                if (data && data.status === 'matched') {
+                    joinMatchmakingGame(data.gameId);
+                }
+            });
+        }
+    });
+}
+
+function joinMatchmakingGame(gameId) {
+    isInMatchmaking = false;
+    matchmakingStatus.textContent = 'Game found!';
+    findMatchBtn.disabled = false;
+    
+    // Join the game
+    gameRef = database.ref(`games/${gameId}`);
+    gameRef.once('value', (snapshot) => {
+        const gameData = snapshot.val();
+        if (!gameData) return;
+
+        playerSymbol = 'O';
+        isMyTurn = false;
+
+        gameRef.update({
+            'players/O': playerName
+        });
+
+        setupGame();
+    });
+}
+
 function createGame() {
     playerName = playerNameInput.value.trim();
     if (!playerName) {
@@ -65,7 +151,8 @@ function createGame() {
         currentTurn: 'X',
         board: Array(9).fill(''),
         gameOver: false,
-        winner: null
+        winner: null,
+        winningLine: null
     };
 
     database.ref(`games/${gameId}`).set(gameData);
@@ -126,6 +213,10 @@ function setupGame() {
         updateBoard(gameData.board);
         isMyTurn = gameData.currentTurn === playerSymbol;
         updateGameStatus(gameData);
+
+        if (gameData.winningLine) {
+            drawWinningLine(gameData.winningLine);
+        }
     });
 }
 
@@ -149,6 +240,7 @@ function handleCellClick(e) {
         if (winner) {
             updates.gameOver = true;
             updates.winner = winner;
+            updates.winningLine = getWinningLine(newBoard, winner);
         } else if (newBoard.every(cell => cell)) {
             updates.gameOver = true;
             updates.winner = 'draw';
@@ -194,8 +286,15 @@ function restartGame() {
         board: Array(9).fill(''),
         currentTurn: 'X',
         gameOver: false,
-        winner: null
+        winner: null,
+        winningLine: null
     });
+
+    // Remove winning line
+    const winningLine = document.querySelector('.winning-line');
+    if (winningLine) {
+        winningLine.remove();
+    }
 }
 
 function checkWinner(board) {
@@ -213,6 +312,77 @@ function checkWinner(board) {
     }
 
     return null;
+}
+
+function getWinningLine(board, winner) {
+    const winPatterns = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+        [0, 4, 8], [2, 4, 6] // Diagonals
+    ];
+
+    for (const pattern of winPatterns) {
+        const [a, b, c] = pattern;
+        if (board[a] === winner && board[a] === board[b] && board[a] === board[c]) {
+            return pattern;
+        }
+    }
+
+    return null;
+}
+
+function drawWinningLine(winningLine) {
+    // Remove existing winning line if any
+    const existingLine = document.querySelector('.winning-line');
+    if (existingLine) {
+        existingLine.remove();
+    }
+
+    const board = document.querySelector('.board');
+    const cells = board.querySelectorAll('.cell');
+    const [first, second, third] = winningLine;
+
+    // Calculate line position and dimensions
+    const firstCell = cells[first].getBoundingClientRect();
+    const lastCell = cells[third].getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+
+    const line = document.createElement('div');
+    line.className = 'winning-line';
+
+    // Determine if the line is horizontal, vertical, or diagonal
+    if (firstCell.top === lastCell.top) {
+        // Horizontal line
+        line.style.width = `${lastCell.right - firstCell.left}px`;
+        line.style.height = '4px';
+        line.style.top = `${firstCell.top + firstCell.height/2 - boardRect.top}px`;
+        line.style.left = `${firstCell.left - boardRect.left}px`;
+    } else if (firstCell.left === lastCell.left) {
+        // Vertical line
+        line.style.width = '4px';
+        line.style.height = `${lastCell.bottom - firstCell.top}px`;
+        line.style.left = `${firstCell.left + firstCell.width/2 - boardRect.left}px`;
+        line.style.top = `${firstCell.top - boardRect.top}px`;
+    } else {
+        // Diagonal line
+        const length = Math.sqrt(
+            Math.pow(lastCell.left - firstCell.left, 2) +
+            Math.pow(lastCell.bottom - firstCell.top, 2)
+        );
+        const angle = Math.atan2(
+            lastCell.bottom - firstCell.top,
+            lastCell.left - firstCell.left
+        ) * 180 / Math.PI;
+
+        line.style.width = `${length}px`;
+        line.style.height = '4px';
+        line.style.left = `${firstCell.left + firstCell.width/2 - boardRect.left}px`;
+        line.style.top = `${firstCell.top + firstCell.height/2 - boardRect.top}px`;
+        line.style.transform = `rotate(${angle}deg)`;
+        line.style.transformOrigin = '0 0';
+    }
+
+    board.appendChild(line);
 }
 
 function generateGameId() {

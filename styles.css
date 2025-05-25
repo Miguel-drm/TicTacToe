@@ -1,3 +1,17 @@
+:root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #b3b3b3;
+    --accent-primary: #4a90e2;
+    --accent-secondary: #357abd;
+    --success: #2ecc71;
+    --error: #e74c3c;
+    --cell-bg: #333333;
+    --cell-hover: #404040;
+    --winning-line: #4a90e2;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,20 +20,20 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    background: var(--bg-primary);
     min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    color: #333;
+    color: var(--text-primary);
     padding: 1rem;
 }
 
 .container {
-    background: white;
+    background: var(--bg-secondary);
     padding: 2rem;
     border-radius: 15px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
     text-align: center;
     max-width: 500px;
     width: 95%;
@@ -32,10 +46,10 @@ body {
 }
 
 h1 {
-    color: #2a5298;
+    color: var(--text-primary);
     margin-bottom: 2rem;
     font-size: clamp(1.8rem, 5vw, 2.5rem);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .setup-section {
@@ -47,45 +61,47 @@ h1 {
 
 input {
     padding: clamp(0.8rem, 2vw, 1rem);
-    border: 2px solid #e0e0e0;
+    border: 2px solid var(--cell-bg);
     border-radius: 8px;
     font-size: clamp(0.9rem, 2vw, 1rem);
     transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     width: 100%;
+    background: var(--cell-bg);
+    color: var(--text-primary);
 }
 
 input:focus {
     outline: none;
-    border-color: #2a5298;
-    box-shadow: 0 2px 10px rgba(42, 82, 152, 0.2);
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 10px rgba(74, 144, 226, 0.2);
     transform: translateY(-2px);
 }
 
 button {
     padding: clamp(0.8rem, 2vw, 1rem) clamp(1.2rem, 3vw, 1.5rem);
-    background: #2a5298;
-    color: white;
+    background: var(--accent-primary);
+    color: var(--text-primary);
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-size: clamp(0.9rem, 2vw, 1rem);
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
     width: 100%;
 }
 
 button:hover {
-    background: #1e3c72;
+    background: var(--accent-secondary);
     transform: translateY(-2px);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
 }
 
 button:active {
     transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .board {
@@ -97,11 +113,12 @@ button:active {
     max-width: 400px;
     margin-left: auto;
     margin-right: auto;
+    position: relative;
 }
 
 .cell {
     aspect-ratio: 1;
-    background: #f5f5f5;
+    background: var(--cell-bg);
     border-radius: 8px;
     display: flex;
     justify-content: center;
@@ -110,24 +127,37 @@ button:active {
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     transform-style: preserve-3d;
+    position: relative;
 }
 
 .cell:hover {
-    background: #e0e0e0;
+    background: var(--cell-hover);
     transform: translateY(-2px) rotateX(5deg);
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.3);
 }
 
 .cell.x {
-    color: #e74c3c;
+    color: var(--error);
     animation: popIn 0.3s ease-out;
 }
 
 .cell.o {
-    color: #3498db;
+    color: var(--accent-primary);
     animation: popIn 0.3s ease-out;
+}
+
+.winning-line {
+    position: absolute;
+    background: var(--winning-line);
+    z-index: 1;
+    animation: lineDraw 0.5s ease-out forwards;
+}
+
+@keyframes lineDraw {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
 }
 
 @keyframes popIn {
@@ -139,14 +169,15 @@ button:active {
 #game-info {
     margin: clamp(0.8rem, 2vw, 1rem) 0;
     padding: clamp(1rem, 3vw, 1.5rem);
-    background: #f5f5f5;
+    background: var(--cell-bg);
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 #game-info p {
     margin: clamp(0.5rem, 1.5vw, 0.8rem) 0;
     font-size: clamp(0.9rem, 2vw, 1.1rem);
+    color: var(--text-secondary);
 }
 
 .hidden {
@@ -155,11 +186,70 @@ button:active {
 
 #restart-game {
     margin-top: 1rem;
-    background: #27ae60;
+    background: var(--success);
 }
 
 #restart-game:hover {
-    background: #219a52;
+    background: #27ae60;
+}
+
+/* Online players counter */
+.online-players {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: var(--bg-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.online-indicator {
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Matchmaking section */
+.matchmaking-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--cell-bg);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.matchmaking-button {
+    background: var(--accent-primary);
+    color: var(--text-primary);
+    padding: 0.8rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.matchmaking-button:hover {
+    background: var(--accent-secondary);
+}
+
+.matchmaking-status {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
 }
 
 /* Loading animation for waiting state */
@@ -173,7 +263,7 @@ button:active {
     width: clamp(6px, 2vw, 8px);
     height: clamp(6px, 2vw, 8px);
     border-radius: 50%;
-    background: #2a5298;
+    background: var(--accent-primary);
     margin: 0 3px;
     animation: loadingDots 1.4s infinite ease-in-out both;
 }
@@ -191,6 +281,7 @@ button:active {
     display: inline-flex;
     align-items: center;
     font-weight: bold;
+    color: var(--text-primary);
 }
 
 .winner-animation {
@@ -205,14 +296,15 @@ button:active {
 
 /* Game ID display */
 #current-game-id {
-    background: #f0f0f0;
+    background: var(--cell-bg);
     padding: 0.5rem 1rem;
     border-radius: 4px;
     font-family: monospace;
     font-size: clamp(0.9rem, 2vw, 1.1rem);
     letter-spacing: 1px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     word-break: break-all;
+    color: var(--text-primary);
 }
 
 /* Media Queries */
@@ -231,6 +323,12 @@ button:active {
 
     button {
         padding: 0.8rem 1rem;
+    }
+
+    .online-players {
+        top: auto;
+        bottom: 1rem;
+        right: 1rem;
     }
 }
 
